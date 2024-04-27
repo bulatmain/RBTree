@@ -8,10 +8,18 @@
 
 #include "rb_tree_exceptions.hpp"
 
+#include <functional>
 #include <iostream>
+#include <iomanip>
 #include <memory>
 
 namespace cust {
+    template <class T>
+    std::function<bool(T const&, T const&)> const equal_to = [](T const& a, T const& b) { return a == b; };
+
+    template <class T>
+    std::function<bool(T const&, T const&)> const less = [](T const& a, T const& b) { return a < b; };
+
     template <class T>
     class RBTree {
     protected:
@@ -23,22 +31,29 @@ namespace cust {
         using node_ptr = std::shared_ptr<Node>;
         using wnode_ptr = std::weak_ptr<Node>;
     public:
+        using comparator = std::function<bool(T const&, T const&)>;
         using value_ptr = std::shared_ptr<T>;
 
-        RBTree() = default;
+        RBTree(comparator const& equal_to = cust::equal_to<T>, 
+               comparator const& less = cust::less<T>) : equal_to(equal_to), less(less) {}
         RBTree(RBTree<T>&& other);
         value_ptr find(T const& value) const;
         void add(T const& value);
-        // void remove(T const& value);
+        void remove(T const& value);
         bool empty() const;
         uint64_t size() const;
 
         bool operator==(RBTree<T> const& other) const;
 
+        static void printTree(node_ptr root, int ident = 0);
+        void printTree() const {
+            RBTree<T>::printTree(root);
+        }
+
     protected:
         class AdditionMethodImplementation;
+        class RemovalMethodImplementation;
 
-        static void printTree(node_ptr root, int ident = 0);
 
         static node_ptr findInSubtree(node_ptr root, T const& value);
 
@@ -51,6 +66,9 @@ namespace cust {
         node_ptr root;
         uint64_t _size;
 
+        comparator equal_to;
+        comparator less;        
+
     };
 
     template <class T>
@@ -59,7 +77,10 @@ namespace cust {
         static size_t count;
         size_t const id;
 
-        Node(Color color, T const& value) : color(color), value(std::make_shared<T>(value)), id(++count) {}
+        Node(Color color, T const& value,
+             comparator const& equal_to, 
+             comparator const& less) : color(color), value(std::make_shared<T>(value)), id(++count),
+             equal_to(equal_to), less(less) {}
 
         bool operator==(Node const& other) const;
 
@@ -67,16 +88,19 @@ namespace cust {
 
         std::ostream& print(std::ostream& os) const;
 
-    protected:
+    public:
         static bool leftIsTheOne(node_ptr node, T const& value);
-        static bool rightIsTheOne(RBTree<T>::node_ptr node, T const& value);
+        static bool rightIsTheOne(node_ptr node, T const& value);
 
-    protected:
+    public:
         node_ptr left;
         node_ptr right;
         wnode_ptr parent;
         Color color;
         value_ptr value;
+
+        comparator const& equal_to;
+        comparator const& less;    
 
     };
 
@@ -89,7 +113,10 @@ namespace cust {
         RBTree* const tree;
 
     public:
-        AdditionMethodImplementation(RBTree<T>* const tree) : tree(tree) {}
+        AdditionMethodImplementation(RBTree<T>* const tree) : tree(tree) {
+            equal_to = tree->equal_to;
+            less = tree->less;
+        }
 
         void run(T const& value) {
             if (tree->empty()) {
@@ -128,7 +155,16 @@ namespace cust {
         static node_ptr addNodeToLeftLeaf(node_ptr node, T const& value);
         static node_ptr addNodeToRightLeaf(node_ptr node, T const& value);
 
+        static comparator equal_to;
+        static comparator less;
+
     };
+
+    template <class T>
+    typename RBTree<T>::comparator RBTree<T>::AdditionMethodImplementation::equal_to = cust::equal_to<T>;
+    
+    template <class T>
+    typename RBTree<T>::comparator RBTree<T>::AdditionMethodImplementation::less = cust::less<T>;
 
     // RBTree class methods implementation
 
@@ -151,7 +187,7 @@ namespace cust {
     }
 
     template <class T>
-    RBTree<T>::value_ptr RBTree<T>::find(T const& value) const {
+    typename RBTree<T>::value_ptr RBTree<T>::find(T const& value) const {
         try {
             node_ptr node = findInSubtree(root, value);
             return node->value;
@@ -163,6 +199,12 @@ namespace cust {
     template <class T>
     void RBTree<T>::add(T const& value) {
         AdditionMethodImplementation impl(this);
+        impl.run(value);
+    }
+
+    template <class T>
+    void RBTree<T>::remove(T const& value) {
+        RemovalMethodImplementation impl(this);
         impl.run(value);
     }
 
@@ -187,19 +229,19 @@ namespace cust {
             return false;
         } else {
             return  !(r1 || r2) ||
-                    ((*r1 == *r2) && 
+                    (*r1 == *r2) && 
                     subtreesEqual(r1->left, r2->left) &&
-                    subtreesEqual(r1->right, r2->right));
+                    subtreesEqual(r1->right, r2->right);
         }
     }
 
     template <class T>
-    RBTree<T>::node_ptr RBTree<T>::findInSubtree(node_ptr root, T const& value) {
+    typename RBTree<T>::node_ptr RBTree<T>::findInSubtree(node_ptr root, T const& value) {
         if (!root) {
             throw NoSuchElementInSubtree("Error: no such element in subtree");
-        } else if (*root->value == value) {
+        } else if (root->equal_to(*root->value, value)) {
             return root;
-        } else if (*root->value < value) {
+        } else if (root->less(*root->value, value)) {
             return findInSubtree(root->right, value);
         } else {
             return findInSubtree(root->left, value);
@@ -207,7 +249,7 @@ namespace cust {
     }
 
     template <class T>
-    RBTree<T>::node_ptr RBTree<T>::leftRotate(node_ptr node) {
+    typename RBTree<T>::node_ptr RBTree<T>::leftRotate(node_ptr node) {
         auto parent = node->parent.lock();
         
         // Set names
@@ -242,7 +284,7 @@ namespace cust {
     }
 
     template <class T>
-    RBTree<T>::node_ptr RBTree<T>::rightRotate(node_ptr node) {
+    typename RBTree<T>::node_ptr RBTree<T>::rightRotate(node_ptr node) {
         auto parent = node->parent.lock();
         
         // Set names
@@ -279,17 +321,17 @@ namespace cust {
 
     template <class T>
     bool RBTree<T>::Node::leftIsTheOne(node_ptr node, T const& value) {
-        return (node != nullptr) && (node->left != nullptr) && (*node->left->value == value);
+        return (node != nullptr) && (node->left != nullptr) && node->equal_to(*node->left->value, value);
     }
 
     template <class T>
     bool RBTree<T>::Node::rightIsTheOne(node_ptr node, T const& value) {
-        return (node != nullptr) && (node->right != nullptr) && (*node->right->value == value);
+        return (node != nullptr) && (node->right != nullptr) && node->equal_to(*node->right->value == value);
     }
 
     template <class T>
     bool RBTree<T>::Node::operator==(Node const& other) const {
-        return (this->color == other.color) && (*this->value == *other.value);
+        return (this->color == other.color) && equal_to(*this->value, *other.value);
     }
 
     template <class T>
@@ -305,12 +347,12 @@ namespace cust {
     // AdditionMethodImplementation class methods implementation
 
     template <class T>
-    RBTree<T>::node_ptr RBTree<T>::AdditionMethodImplementation::findLeafParentInSubtree(node_ptr root, T const& value) {
+    typename RBTree<T>::node_ptr RBTree<T>::AdditionMethodImplementation::findLeafParentInSubtree(node_ptr root, T const& value) {
         if (!root) {
             throw TreeEmpty("Error: empty tree");
-        } else if (*root->value == value) {
+        } else if (equal_to(*root->value, value)) {
             throw NoLeafParentElementInTree("Error: no leaf parent in subtree");
-        } else if (*root->value < value) {
+        } else if (less(*root->value, value)) {
             if (!root->right) {
                 return root;
             } else {
@@ -326,7 +368,7 @@ namespace cust {
     }
 
     template <class T>
-    RBTree<T>::node_ptr RBTree<T>::AdditionMethodImplementation::addToLeafOfSubtree(node_ptr root, T const& value) {
+    typename RBTree<T>::node_ptr RBTree<T>::AdditionMethodImplementation::addToLeafOfSubtree(node_ptr root, T const& value) {
         try {
             node_ptr node = findLeafParentInSubtree(root, value);
             return addNodeToLeaf(node, value);
@@ -379,7 +421,7 @@ namespace cust {
     }
 
     template <class T>
-    RBTree<T>::node_ptr RBTree<T>::AdditionMethodImplementation::leftChildParentCaseBalance(node_ptr node) {
+    typename RBTree<T>::node_ptr RBTree<T>::AdditionMethodImplementation::leftChildParentCaseBalance(node_ptr node) {
         if (rightChildNodeCase(node)) {
             node = node->parent.lock();
             node = tree->leftRotate(node)->left;
@@ -389,7 +431,7 @@ namespace cust {
     }
 
     template <class T>
-    RBTree<T>::node_ptr RBTree<T>::AdditionMethodImplementation::rightChildParentCaseBalance(node_ptr node) {
+    typename RBTree<T>::node_ptr RBTree<T>::AdditionMethodImplementation::rightChildParentCaseBalance(node_ptr node) {
         if (leftChildNodeCase(node)) {
             node = node->parent.lock();
             node = tree->rightRotate(node)->right;
@@ -414,7 +456,7 @@ namespace cust {
     } 
 
     template <class T>
-    RBTree<T>::node_ptr RBTree<T>::AdditionMethodImplementation::recolorParentAndGrandfather(node_ptr node) {
+    typename RBTree<T>::node_ptr RBTree<T>::AdditionMethodImplementation::recolorParentAndGrandfather(node_ptr node) {
         auto parent = node->parent.lock();
         auto grandfather = parent->parent.lock();
         parent->color = BLACK;
@@ -423,7 +465,7 @@ namespace cust {
     }
 
     template <class T>
-    RBTree<T>::node_ptr RBTree<T>::AdditionMethodImplementation::recolorParentAndUncleAndGrandfather(node_ptr node) {
+    typename RBTree<T>::node_ptr RBTree<T>::AdditionMethodImplementation::recolorParentAndUncleAndGrandfather(node_ptr node) {
         auto parent = node->parent.lock();
         auto grandfather = parent->parent.lock();
         auto uncle = grandfather->left;
@@ -450,11 +492,11 @@ namespace cust {
     }
 
     template <class T>
-    RBTree<T>::node_ptr RBTree<T>::AdditionMethodImplementation::addNodeToLeaf(node_ptr node, T const& value) {
+    typename RBTree<T>::node_ptr RBTree<T>::AdditionMethodImplementation::addNodeToLeaf(node_ptr node, T const& value) {
         node_ptr leaf;
-        if (*node->value == value) {
+        if (equal_to(*node->value, value)) {
             throw TreeHasGivenElement("Error: can not add repeating element to leaf!");
-        } else if (*node->value < value) {
+        } else if (less(*node->value, value)) {
             leaf = addNodeToRightLeaf(node, value);
         } else {
             leaf = addNodeToLeftLeaf(node, value);
@@ -464,7 +506,7 @@ namespace cust {
     }
 
     template <class T>
-    RBTree<T>::node_ptr RBTree<T>::AdditionMethodImplementation::addNodeToLeftLeaf(node_ptr node, T const& value) {
+    typename RBTree<T>::node_ptr RBTree<T>::AdditionMethodImplementation::addNodeToLeftLeaf(node_ptr node, T const& value) {
         if (!node->left) {
             return node->left = makeNode(Color::RED, value); 
         } else {
@@ -473,7 +515,7 @@ namespace cust {
     }
 
     template <class T>
-    RBTree<T>::node_ptr RBTree<T>::AdditionMethodImplementation::addNodeToRightLeaf(node_ptr node, T const& value) {
+    typename RBTree<T>::node_ptr RBTree<T>::AdditionMethodImplementation::addNodeToRightLeaf(node_ptr node, T const& value) {
         if (!node->right) {
             return node->right = makeNode(Color::RED, value); 
         } else {
@@ -482,8 +524,8 @@ namespace cust {
     }
 
     template <class T>
-    RBTree<T>::node_ptr RBTree<T>::AdditionMethodImplementation::makeNode(Color color, T const& value) {
-        return std::make_shared<Node>(color, value);
+    typename RBTree<T>::node_ptr RBTree<T>::AdditionMethodImplementation::makeNode(Color color, T const& value) {
+        return std::make_shared<Node>(color, value, equal_to, less);
     }
 
 

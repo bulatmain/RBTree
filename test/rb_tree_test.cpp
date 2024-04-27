@@ -15,6 +15,14 @@ enum ChildSide {
 	RIGHT
 };
 
+TEST(Comparator, CustEqualTo) {
+	ASSERT_TRUE(cust::equal_to<double>(1, 1.0));
+}
+
+TEST(Comparator, CustLess) {
+	ASSERT_TRUE(cust::less<double>(5, 15));
+}
+
 void set_link(tree::node_ptr new_parent, tree::node_ptr new_child, ChildSide s) {
 	if (s == ChildSide::LEFT) {
 		new_parent->left = new_child;
@@ -25,7 +33,7 @@ void set_link(tree::node_ptr new_parent, tree::node_ptr new_child, ChildSide s) 
 }
 
 tree::node_ptr add_child_to_node(tree::node_ptr n, color c, double val, ChildSide s) {
-	auto _n = std::make_shared<node>(c, val);
+	auto _n = std::make_shared<node>(c, val, cust::equal_to<double>, cust::less<double>);
 	set_link(n, _n, s);
 	return _n;
 }
@@ -47,7 +55,7 @@ tree preTreeInTest__AddNode8ToEmptyTree__() {
 
 tree wantedTreeInTest__AddNode8ToEmptyTree__() {
 	tree t = preTreeInTest__AddNode8ToEmptyTree__();
-	tree::node_ptr root = std::make_shared<node>(tree::Color::BLACK, 8);
+	tree::node_ptr root = std::make_shared<node>(tree::Color::BLACK, 8, cust::equal_to<double>, cust::less<double>);
 	t.root = root;
 	return t;
 }
@@ -151,7 +159,7 @@ tree preTreeInTest__Addition80CauseRecolorAndLRotationAndRecolor__() {
 
 tree wantedTreeInTest__Addition80CauseRecolorAndLRotationAndRecolor__() {
 	tree t;
-	auto n17 = std::make_shared<node>(color::BLACK, 17);
+	auto n17 = std::make_shared<node>(color::BLACK, 17, cust::equal_to<double>, cust::less<double>);
 	auto n8  = add_child_to_node(n17, color::RED,    8, ChildSide::LEFT);
 	auto n25 = add_child_to_node(n17, color::RED,   25, ChildSide::RIGHT);
 	auto n5  = add_child_to_node(n8,  color::BLACK,  5, ChildSide::LEFT);
@@ -185,7 +193,7 @@ TEST(FindInSubtreeMethod, EmptyRBTreeBad) {
 
 	
 tree::node_ptr rb_tree_example_1() {
-	auto n4 = std::make_shared<node>(color::BLACK, 4);
+	auto n4 = std::make_shared<node>(color::BLACK, 4, cust::equal_to<double>, cust::less<double>);
 	auto n2 = add_child_to_node(n4, color::RED, 2, ChildSide::LEFT);
 	auto n6 = add_child_to_node(n4, color::BLACK, 6, ChildSide::RIGHT);
 	auto n0 = add_child_to_node(n2, color::BLACK, 0, ChildSide::LEFT);
