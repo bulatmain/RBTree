@@ -236,7 +236,7 @@ void rb_tree_example_1_find_parent_element_good(double val, double prev) {
 
 	std::shared_ptr<node> n;
 	try {
-		n = tree::findLeafParentInSubtree(root, val);
+		n = tree::AdditionMethodImplementation::findLeafParentInSubtree(root, val);
 	} catch(...) {
 		FAIL();
 	}
@@ -246,7 +246,7 @@ void rb_tree_example_1_find_parent_element_good(double val, double prev) {
 void rb_tree_example_1_find_parent_element_bad(double val) {
 	auto root = rb_tree_example_1();
 	ASSERT_THROW(
-		{tree::findLeafParentInSubtree(root, val);},
+		{tree::AdditionMethodImplementation::findLeafParentInSubtree(root, val);},
 		NoLeafParentElementInTree
 	);
 }
@@ -270,7 +270,7 @@ TEST(FindParentInSubtreeMethod, RBTreeExample1FindPrevOf4Bad) {
 
 TEST(AddToLeafOfSubtreeMethod, RBTreeExample1Add7_5ToLeaf) {
 	auto root = rb_tree_example_1();
-	auto node = tree::addToLeafOfSubtree(root, 7.5);
+	auto node = tree::AdditionMethodImplementation::addToLeafOfSubtree(root, 7.5);
 	auto parent = node->parent.lock();
 	ASSERT_TRUE(parent);
 	ASSERT_EQ(*(parent->value), 7.0);
@@ -279,7 +279,7 @@ TEST(AddToLeafOfSubtreeMethod, RBTreeExample1Add7_5ToLeaf) {
 
 TEST(AddToLeafOfSubtreeMethod, RBTreeExample1Addm1ToLeaf) {
 	auto root = rb_tree_example_1();
-	auto node = tree::addToLeafOfSubtree(root, -1.0);
+	auto node = tree::AdditionMethodImplementation::addToLeafOfSubtree(root, -1.0);
 	auto parent = node->parent.lock();
 	ASSERT_TRUE(parent);
 	ASSERT_EQ(*(parent->value), 0);
@@ -289,7 +289,7 @@ TEST(AddToLeafOfSubtreeMethod, RBTreeExample1Addm1ToLeaf) {
 TEST(AddToLeafOfSubtreeMethod, RBTreeEmptyAdd0ToLeaf) {
 	tree::node_ptr root = nullptr;
 	ASSERT_THROW(
-		{ auto node = tree::addToLeafOfSubtree(root, 0); },
+		{ auto node = tree::AdditionMethodImplementation::addToLeafOfSubtree(root, 0); },
 		TreeEmpty
 	);
 }
