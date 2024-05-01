@@ -27,6 +27,12 @@ namespace cust {
             BLACK,
             RED
         };
+
+        enum ChildSide {
+        	LEFT,
+        	RIGHT
+        };
+
         class Node;
         using node_ptr = std::shared_ptr<Node>;
         using wnode_ptr = std::weak_ptr<Node>;
@@ -54,13 +60,12 @@ namespace cust {
         class AdditionMethodImplementation;
         class RemovalMethodImplementation;
 
-
+        static bool subtreesEqual(node_ptr r1, node_ptr r2);
         static node_ptr findInSubtree(node_ptr root, T const& value);
 
         node_ptr rightRotate(node_ptr node);
         node_ptr leftRotate(node_ptr node);
 
-        static bool subtreesEqual(node_ptr r1, node_ptr r2);
 
     protected:
         node_ptr root;
@@ -116,15 +121,7 @@ namespace cust {
         AdditionMethodImplementation(RBTree<T>* const tree)
          : tree(tree), equal_to(tree->equal_to), less(tree->less) {}
 
-        void run(T const& value) {
-            if (tree->empty()) {
-                tree->root = makeNode(BLACK, value);
-            } else {
-                auto node = addToLeafOfSubtree(tree->root, value);
-                balanceFrom(node);
-            }
-            ++tree->_size;
-        }
+        void run(T const& value);
 
     protected:
         void balanceFrom(node_ptr node);
@@ -168,16 +165,30 @@ namespace cust {
         RemovalMethodImplementation(RBTree<T>* const tree)
          : tree(tree), equal_to(tree->equal_to), less(tree->less) {}
 
-        void run(T const& value) {}
+        value_ptr run(T const& value);
 
     protected:
+        node_ptr removeNode(node_ptr node);
+        void balanceFrom(node_ptr node);
 
+        static bool childlessNodeCase(node_ptr);
+        static bool nodeWithOneChildCase(node_ptr);
+
+        node_ptr removeChildlessNode(node_ptr);
+        node_ptr removeNodeWithOneChild(node_ptr);
+        node_ptr removeNodeWithTwoChildren(node_ptr);
+
+        static node_ptr findLeastLargestNodeFromNodeWithTwoChildren(node_ptr);
+
+    protected:
         comparator const& equal_to;
         comparator const& less;
 
     };
 
     // RBTree class methods implementation
+#ifdef RB_TREE_HPP
+#define RB_TREE_HPP
 
     template <class T>
     void RBTree<T>::printTree(node_ptr root, int indent) {
@@ -216,8 +227,7 @@ namespace cust {
     template <class T>
     RBTree<T>::value_ptr RBTree<T>::remove(T const& value) {
         RemovalMethodImplementation impl(this);
-        impl.run(value);
-        return impl.value_ptr;
+        return impl.run(value);
     }
 
     template <class T>
@@ -236,18 +246,6 @@ namespace cust {
     }
 
     template <class T>
-    bool RBTree<T>::subtreesEqual(node_ptr r1, node_ptr r2) {
-        if (static_cast<bool>(r1) != static_cast<bool>(r2)) {
-            return false;
-        } else {
-            return  !(r1 || r2) ||
-                    (*r1 == *r2) && 
-                    subtreesEqual(r1->left, r2->left) &&
-                    subtreesEqual(r1->right, r2->right);
-        }
-    }
-
-    template <class T>
     typename RBTree<T>::node_ptr RBTree<T>::findInSubtree(node_ptr root, T const& value) {
         if (!root) {
             throw NoSuchElementInSubtree("Error: no such element in subtree");
@@ -257,6 +255,18 @@ namespace cust {
             return findInSubtree(root->right, value);
         } else {
             return findInSubtree(root->left, value);
+        }
+    }
+
+    template <class T>
+    bool RBTree<T>::subtreesEqual(node_ptr r1, node_ptr r2) {
+        if (static_cast<bool>(r1) != static_cast<bool>(r2)) {
+            return false;
+        } else {
+            return  !(r1 || r2) ||
+                    (*r1 == *r2) && 
+                    subtreesEqual(r1->left, r2->left) &&
+                    subtreesEqual(r1->right, r2->right);
         }
     }
 
@@ -329,8 +339,11 @@ namespace cust {
         return pivot;
     }
 
-    // Node class methods implementation
+#endif
 
+    // Node class methods implementation
+#ifdef RB_TREE_HPP
+#define RB_TREE_HPP
     template <class T>
     bool RBTree<T>::Node::leftIsTheOne(node_ptr node, T const& value) {
         return (node != nullptr) && (node->left != nullptr) && node->equal_to(*node->left->value, value);
@@ -356,7 +369,21 @@ namespace cust {
         return os << "(" << *value << ", " << color << ")";
     }
 
+#endif
+
     // AdditionMethodImplementation class methods implementation
+#ifdef RB_TREE_HPP
+#define RB_TREE_HPP
+    template <class T>
+    void RBTree<T>::AdditionMethodImplementation::run(T const& value) {
+        if (tree->empty()) {
+            tree->root = makeNode(BLACK, value);
+        } else {
+            auto node = addToLeafOfSubtree(tree->root, value);
+            balanceFrom(node);
+        }
+        ++tree->_size;
+    }
 
     template <class T>
     typename RBTree<T>::node_ptr RBTree<T>::AdditionMethodImplementation::findLeafParentInSubtree(node_ptr root, T const& value) {
@@ -544,6 +571,125 @@ namespace cust {
     typename RBTree<T>::node_ptr RBTree<T>::AdditionMethodImplementation::makeNode(Color color, T const& value) {
         return std::make_shared<Node>(color, value, equal_to, less);
     }
+
+#endif
+
+// RemovalMethodImplementation class methods implementation
+#ifdef RB_TREE_HPP
+#define RB_TREE_HPP
+
+template <class T>
+RBTree<T>::value_ptr RBTree<T>::RemovalMethodImplementation::run(T const& value) {
+    if (tree->empty()) {
+        throw TreeEmpty("Error: can not remove node from empty RBTree!");
+    } try {
+        auto node = tree->findInSubtree(tree->root, value);
+        auto value = node->value;
+        node = removeNode(node);
+        balanceFrom(node);
+        return value;
+    } catch(NoSuchElementInSubtree const& e) {
+        throw e;
+    }
+}
+
+template <class T>
+typename RBTree<T>::node_ptr RBTree<T>::RemovalMethodImplementation::removeNode(node_ptr node) {
+    if (childlessNodeCase(node)) {
+        node = removeChildlessNode(node);
+    } else if (nodeWithOneChildCase(node)) {
+        node = removeNodeWithOneChild(node);
+    } else {
+        node = removeNodeWithTwoChildren(node);
+    }
+    return node;
+}
+
+
+template <class T>
+bool RBTree<T>::RemovalMethodImplementation::childlessNodeCase(node_ptr node) {
+    return !(node->left || node->right);
+}
+template <class T>
+bool RBTree<T>::RemovalMethodImplementation::nodeWithOneChildCase(node_ptr node) {
+    return (node->left && !node->right) || (!node->left && node->right);
+}
+
+
+template <class T>
+typename RBTree<T>::node_ptr  RBTree<T>::RemovalMethodImplementation::removeChildlessNode(node_ptr node) {
+    auto parent = node->parent.lock();
+    if (!parent) {
+        tree->root = nullptr;
+    } else if (node == parent->left) {
+        parent->left = nullptr;
+    } else {
+        parent->right = nullptr;
+    }
+    return node;
+}
+
+template <class T>
+typename RBTree<T>::node_ptr  RBTree<T>::RemovalMethodImplementation::removeNodeWithOneChild(node_ptr node) {
+    auto parent = node->parent.lock();
+    if (!parent) {
+        if (node->left) {
+            tree->root = node->left;
+            node->left->parent = wnode_ptr();
+        } else {
+            tree->root = node->right;
+            node->right->parent = wnode_ptr();
+        }
+    } else if (node == parent->left) {
+        if (node->left) {
+            parent->left = node->left;
+            node->left->parent = parent;
+            node->left = nullptr;
+        } else {
+            parent->left = node->right;
+            node->right->parent = parent;
+            node->right = nullptr;
+        }
+    } else {
+        if (node->left) {
+            parent->right = node->left;
+            node->left->parent = parent;
+            node->left = nullptr;
+        } else {
+            parent->right = node->right;
+            node->right->parent = parent;
+            node->right = nullptr;
+        }
+    }
+    return node;
+}
+
+template <class T>
+typename RBTree<T>::node_ptr  RBTree<T>::RemovalMethodImplementation::removeNodeWithTwoChildren(node_ptr node) {
+    auto next = findLeastLargestNodeFromNodeWithTwoChildren(node);
+    node->value = next->value;
+    return removeNodeWithOneChild(next);
+}
+
+template <class T>
+typename RBTree<T>::node_ptr RBTree<T>::RemovalMethodImplementation::findLeastLargestNodeFromNodeWithTwoChildren(node_ptr node) {
+    auto next = node->right;
+    while (next->left) {
+        next = next->left;
+    }
+    return next;
+}
+
+template <class T>
+void RBTree<T>::RemovalMethodImplementation::balanceFrom(node_ptr node) {
+    if (redBrotherCase(node)) {
+        
+    } else if (blackBrotherCase(node)) {
+
+    }
+}
+
+#endif
 
 
 };

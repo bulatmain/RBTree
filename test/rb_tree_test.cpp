@@ -10,14 +10,10 @@ using namespace cust;
 using tree = RBTree<double>;
 using node = RBTree<double>::Node;
 using color = RBTree<double>::Color;
+using childSide = RBTree<double>::ChildSide;
 
-enum ChildSide {
-	LEFT,
-	RIGHT
-};
-
-void set_link(tree::node_ptr new_parent, tree::node_ptr new_child, ChildSide s) {
-	if (s == ChildSide::LEFT) {
+void set_link(tree::node_ptr new_parent, tree::node_ptr new_child, childSide s) {
+	if (s == childSide::LEFT) {
 		new_parent->left = new_child;
 	} else {
 		new_parent->right = new_child;
@@ -29,7 +25,7 @@ tree::node_ptr make_node(color c, double val) {
 	return std::make_shared<node>(c, val, cust::equal_to<double>, cust::less<double>);
 }
 
-tree::node_ptr add_child_to_node(tree::node_ptr n, color c, double val, ChildSide s) {
+tree::node_ptr add_child_to_node(tree::node_ptr n, color c, double val, childSide s) {
 	auto _n = make_node(c, val);
 	set_link(n, _n, s);
 	return _n;
@@ -38,15 +34,15 @@ tree::node_ptr add_child_to_node(tree::node_ptr n, color c, double val, ChildSid
 // Tree examples
 tree::node_ptr rb_tree_example_1() {
 	auto n4 = std::make_shared<node>(color::BLACK, 4, cust::equal_to<double>, cust::less<double>);
-	auto n2 = add_child_to_node(n4, color::RED, 2, ChildSide::LEFT);
-	auto n6 = add_child_to_node(n4, color::BLACK, 6, ChildSide::RIGHT);
-	auto n0 = add_child_to_node(n2, color::BLACK, 0, ChildSide::LEFT);
-	auto n3 = add_child_to_node(n2, color::BLACK, 3, ChildSide::RIGHT);
-	auto n5 = add_child_to_node(n6, color::BLACK, 5, ChildSide::LEFT);
-	auto n8 = add_child_to_node(n6, color::BLACK, 8, ChildSide::RIGHT);
-	auto n1 = add_child_to_node(n0, color::RED, 1, ChildSide::RIGHT);
-	auto n7 = add_child_to_node(n8, color::RED, 7, ChildSide::LEFT);
-	auto n9 = add_child_to_node(n8, color::RED, 9, ChildSide::RIGHT);
+	auto n2 = add_child_to_node(n4, color::RED, 2, childSide::LEFT);
+	auto n6 = add_child_to_node(n4, color::BLACK, 6, childSide::RIGHT);
+	auto n0 = add_child_to_node(n2, color::BLACK, 0, childSide::LEFT);
+	auto n3 = add_child_to_node(n2, color::BLACK, 3, childSide::RIGHT);
+	auto n5 = add_child_to_node(n6, color::BLACK, 5, childSide::LEFT);
+	auto n8 = add_child_to_node(n6, color::BLACK, 8, childSide::RIGHT);
+	auto n1 = add_child_to_node(n0, color::RED, 1, childSide::RIGHT);
+	auto n7 = add_child_to_node(n8, color::RED, 7, childSide::LEFT);
+	auto n9 = add_child_to_node(n8, color::RED, 9, childSide::RIGHT);
 
 	return n4;
 }
@@ -86,8 +82,8 @@ TEST(AddMethod, AddNode8ToEmptyTree) {
 tree preTreeInTest__Addition15CauseRecolorWithRoot__() {
 	tree t = wantedTreeInTest__AddNode8ToEmptyTree__();
 	auto n8 = t.root;
-	auto n5 = add_child_to_node(n8, color::RED, 5, ChildSide::LEFT);
-	auto n18 = add_child_to_node(n8, color::RED, 18, ChildSide::RIGHT);
+	auto n5 = add_child_to_node(n8, color::RED, 5, childSide::LEFT);
+	auto n18 = add_child_to_node(n8, color::RED, 18, childSide::RIGHT);
 	return t;
 }
 
@@ -96,7 +92,7 @@ tree wantedTreeInTest__Addition15CauseRecolorWithRoot__() {
 	auto n8  = t.root;    n8->color  = color::BLACK;
 	auto n5  = n8->left;  n5->color  = color::BLACK;
 	auto n18 = n8->right; n18->color = color::BLACK;
-	auto n15 = add_child_to_node(n18, color::RED, 15, ChildSide::LEFT);
+	auto n15 = add_child_to_node(n18, color::RED, 15, childSide::LEFT);
 	return t;
 }
 
@@ -117,13 +113,13 @@ tree wantedTreeInTest__Addition17CauseRLRotationAndRecolor__() {
 	auto n18 = n8->right;
 	auto n15 = n18->left;
 
-	auto n17 = add_child_to_node(n8, color::BLACK, 17, ChildSide::RIGHT);
+	auto n17 = add_child_to_node(n8, color::BLACK, 17, childSide::RIGHT);
 
-	set_link(n17, n15, ChildSide::LEFT);
+	set_link(n17, n15, childSide::LEFT);
 	n15->left = n15->right = nullptr;
 	n15->color = color::RED;
 
-	set_link(n17, n18, ChildSide::RIGHT);
+	set_link(n17, n18, childSide::RIGHT);
 	n18->left = n18->right = nullptr;
 	n18->color = color::RED;
 
@@ -145,7 +141,7 @@ tree preTreeInTest__Addition40CauseLLRotationAndRecolor__() {
 
 	n17->color = color::RED;
 	n15->color = n18->color = color::BLACK;
-	auto n25 = add_child_to_node(n18, color::RED, 25, ChildSide::RIGHT);
+	auto n25 = add_child_to_node(n18, color::RED, 25, childSide::RIGHT);
 	return t;
 }
 
@@ -155,12 +151,12 @@ tree wantedTreeInTest__Addition40CauseLLRotationAndRecolor__() {
 	auto n17 = n8->right;
 	auto n18 = n17->right;
 	auto n25 = n18->right;
-	set_link(n17, n25, ChildSide::RIGHT);
-	set_link(n25, n18, ChildSide::LEFT);
+	set_link(n17, n25, childSide::RIGHT);
+	set_link(n25, n18, childSide::LEFT);
 	n18->left = n18->right = nullptr;
 	n18->color = color::RED;
 	n25->color = color::BLACK;
-	auto n40 = add_child_to_node(n25, color::RED, 40, ChildSide::RIGHT);
+	auto n40 = add_child_to_node(n25, color::RED, 40, childSide::RIGHT);
 	return t;
 }
 
@@ -177,13 +173,13 @@ tree preTreeInTest__Addition80CauseRecolorAndLRotationAndRecolor__() {
 tree wantedTreeInTest__Addition80CauseRecolorAndLRotationAndRecolor__() {
 	tree t;
 	auto n17 = std::make_shared<node>(color::BLACK, 17, cust::equal_to<double>, cust::less<double>);
-	auto n8  = add_child_to_node(n17, color::RED,    8, ChildSide::LEFT);
-	auto n25 = add_child_to_node(n17, color::RED,   25, ChildSide::RIGHT);
-	auto n5  = add_child_to_node(n8,  color::BLACK,  5, ChildSide::LEFT);
-	auto n15 = add_child_to_node(n8,  color::BLACK, 15, ChildSide::RIGHT);
-	auto n18 = add_child_to_node(n25, color::BLACK, 18, ChildSide::LEFT);
-	auto n40 = add_child_to_node(n25, color::BLACK, 40, ChildSide::RIGHT);
-	auto n80 = add_child_to_node(n40, color::RED,   80, ChildSide::RIGHT);
+	auto n8  = add_child_to_node(n17, color::RED,    8, childSide::LEFT);
+	auto n25 = add_child_to_node(n17, color::RED,   25, childSide::RIGHT);
+	auto n5  = add_child_to_node(n8,  color::BLACK,  5, childSide::LEFT);
+	auto n15 = add_child_to_node(n8,  color::BLACK, 15, childSide::RIGHT);
+	auto n18 = add_child_to_node(n25, color::BLACK, 18, childSide::LEFT);
+	auto n40 = add_child_to_node(n25, color::BLACK, 40, childSide::RIGHT);
+	auto n80 = add_child_to_node(n40, color::RED,   80, childSide::RIGHT);
 	t.root = n17;
 	return t;
 }
@@ -361,7 +357,7 @@ TEST(RemoveMethod, RemoveSoloRoot8Good) {
 tree preTreeInTest__RedNode18WithoutKids__() {
 	tree t;
 	auto n8 = make_node(color::BLACK, 8);
-	auto n18 = add_child_to_node(n8, color::RED, 18, RIGHT);
+	auto n18 = add_child_to_node(n8, color::RED, 18,  childSide::RIGHT);
 	t.root = n8;
 	return t;
 } 
@@ -382,7 +378,7 @@ TEST(RemoveMethod, RedNode18WithoutKids) {
 tree preTreeInTest__BlackNode18WithOneRedChild__() {
 	tree t;
 	auto n8 = make_node(color::BLACK, 8);
-	auto n18 = add_child_to_node(n8, color::RED, 18, RIGHT);
+	auto n18 = add_child_to_node(n8, color::RED, 18,  childSide::RIGHT);
 	t.root = n8;
 	return t;
 }
@@ -403,9 +399,9 @@ TEST(RemoveMethod, BlackNode18WithOneRedChild) {
 tree preTreeInTest__BlackNode5WithBlackBrotherWithLeftRedChild__() {
 	tree t;
 	auto n8 = make_node(color::BLACK, 8);
-	auto n5 = add_child_to_node(n8, color::BLACK, 5, LEFT);
-	auto n18 = add_child_to_node(n8, color::BLACK, 18, RIGHT);
-	auto n15 = add_child_to_node(n18, color::RED, 15, LEFT);
+	auto n5 = add_child_to_node(n8, color::BLACK, 5,  childSide::LEFT);
+	auto n18 = add_child_to_node(n8, color::BLACK, 18,  childSide::RIGHT);
+	auto n15 = add_child_to_node(n18, color::RED, 15,  childSide::LEFT);
 	t.root = n8;
 	return t;
 }
@@ -413,8 +409,8 @@ tree preTreeInTest__BlackNode5WithBlackBrotherWithLeftRedChild__() {
 tree wantedTreeInTest__BlackNode5WithBlackBrotherWithLeftRedChild__() {
 	tree _t;
 	auto n15 = make_node(color::BLACK, 15);
-	auto n8 = add_child_to_node(n15, color::BLACK, 8, LEFT);
-	auto n18 = add_child_to_node(n15, color::BLACK, 18, RIGHT);
+	auto n8 = add_child_to_node(n15, color::BLACK, 8,  childSide::LEFT);
+	auto n18 = add_child_to_node(n15, color::BLACK, 18,  childSide::RIGHT);
 	_t.root = n15;
 	return _t;
 }
@@ -428,10 +424,10 @@ TEST(RemoveMethod, BlackNode5WithBlackBrotherWithLeftRedChild) {
 tree preTreeInTest__BlackNode5WithBlackBrotherWithRightRedChild__() {
 	tree t;
 	auto n8 = make_node(color::BLACK, 8);
-	auto n5 = add_child_to_node(n8, color::BLACK, 5, LEFT);
-	auto n17 = add_child_to_node(n8, color::BLACK, 17, RIGHT);
-	auto n15 = add_child_to_node(n17, color::RED, 15, LEFT);
-	auto n18 = add_child_to_node(n17, color::RED, 18, RIGHT);
+	auto n5 = add_child_to_node(n8, color::BLACK, 5,  childSide::LEFT);
+	auto n17 = add_child_to_node(n8, color::BLACK, 17,  childSide::RIGHT);
+	auto n15 = add_child_to_node(n17, color::RED, 15,  childSide::LEFT);
+	auto n18 = add_child_to_node(n17, color::RED, 18,  childSide::RIGHT);
 	t.root = n8;
 	return t;
 }
@@ -439,9 +435,9 @@ tree preTreeInTest__BlackNode5WithBlackBrotherWithRightRedChild__() {
 tree wantedTreeInTest__BlackNode5WithBlackBrotherWithRightRedChild__() {
 	tree _t;
 	auto n17 = make_node(color::BLACK, 17);
-	auto n8 = add_child_to_node(n17, color::BLACK, 8, LEFT);
-	auto n15 = add_child_to_node(n8, color::RED, 15, RIGHT);
-	auto n18 = add_child_to_node(n17, color::BLACK, 18, RIGHT);
+	auto n8 = add_child_to_node(n17, color::BLACK, 8,  childSide::LEFT);
+	auto n15 = add_child_to_node(n8, color::RED, 15,  childSide::RIGHT);
+	auto n18 = add_child_to_node(n17, color::BLACK, 18,  childSide::RIGHT);
 	_t.root = n17;
 	return _t;
 }
@@ -455,11 +451,11 @@ TEST(RemoveMethod, BlackNode5WithBlackBrotherWithRightRedChild) {
 tree preTreeInTest__BlackNode5WithRedBrother__() {
 	tree t;
 	auto n8 = make_node(color::BLACK, 8);
-	auto n5 = add_child_to_node(n8, color::BLACK, 5, LEFT);
-	auto n17 = add_child_to_node(n8, color::RED, 17, RIGHT);
-	auto n15 = add_child_to_node(n17, color::BLACK, 15, LEFT);
-	auto n18 = add_child_to_node(n17, color::BLACK, 18, RIGHT);
-	auto n26 = add_child_to_node(n18, color::RED, 25, RIGHT);
+	auto n5 = add_child_to_node(n8, color::BLACK, 5,  childSide::LEFT);
+	auto n17 = add_child_to_node(n8, color::RED, 17,  childSide::RIGHT);
+	auto n15 = add_child_to_node(n17, color::BLACK, 15,  childSide::LEFT);
+	auto n18 = add_child_to_node(n17, color::BLACK, 18,  childSide::RIGHT);
+	auto n26 = add_child_to_node(n18, color::RED, 25,  childSide::RIGHT);
 	t.root = n8;
 	return t;
 }
@@ -467,10 +463,10 @@ tree preTreeInTest__BlackNode5WithRedBrother__() {
 tree wantedTreeInTest__BlackNode5WithRedBrother__() {
 	tree _t;
 	auto n17 = make_node(color::BLACK, 17);
-	auto n8 = add_child_to_node(n17, color::BLACK, 8, LEFT);
-	auto n15 = add_child_to_node(n8, color::RED, 15, RIGHT);
-	auto n18 = add_child_to_node(n17, color::BLACK, 18, RIGHT);
-	auto n25 = add_child_to_node(n18, color::RED, 25, RIGHT);
+	auto n8 = add_child_to_node(n17, color::BLACK, 8,  childSide::LEFT);
+	auto n15 = add_child_to_node(n8, color::RED, 15,  childSide::RIGHT);
+	auto n18 = add_child_to_node(n17, color::BLACK, 18,  childSide::RIGHT);
+	auto n25 = add_child_to_node(n18, color::RED, 25,  childSide::RIGHT);
 	_t.root = n17;
 	return _t;
 }
