@@ -39,7 +39,7 @@ namespace cust {
         RBTree(RBTree<T>&& other);
         value_ptr find(T const& value) const;
         void add(T const& value);
-        void remove(T const& value);
+        value_ptr remove(T const& value);
         bool empty() const;
         uint64_t size() const;
 
@@ -113,10 +113,8 @@ namespace cust {
         RBTree* const tree;
 
     public:
-        AdditionMethodImplementation(RBTree<T>* const tree) : tree(tree) {
-            equal_to = tree->equal_to;
-            less = tree->less;
-        }
+        AdditionMethodImplementation(RBTree<T>* const tree)
+         : tree(tree), equal_to(tree->equal_to), less(tree->less) {}
 
         void run(T const& value) {
             if (tree->empty()) {
@@ -134,7 +132,7 @@ namespace cust {
         node_ptr rightChildParentCaseBalance(node_ptr node);
         void restoreRootProperty();
 
-        static node_ptr findLeafParentInSubtree(node_ptr root, T const& value);
+        node_ptr findLeafParentInSubtree(node_ptr root, T const& value);
 
         static node_ptr recolorParentAndGrandfather(node_ptr node);
         static node_ptr recolorParentAndUncleAndGrandfather(node_ptr node);
@@ -149,22 +147,35 @@ namespace cust {
         static bool rightChildNodeCase(node_ptr node);
         
 
-        static node_ptr makeNode(Color color, T const& value);
-        static node_ptr addToLeafOfSubtree(node_ptr root, T const& value);
-        static node_ptr addNodeToLeaf(node_ptr node, T const& value);
-        static node_ptr addNodeToLeftLeaf(node_ptr node, T const& value);
-        static node_ptr addNodeToRightLeaf(node_ptr node, T const& value);
+        node_ptr makeNode(Color color, T const& value);
+        node_ptr addToLeafOfSubtree(node_ptr root, T const& value);
+        node_ptr addNodeToLeaf(node_ptr node, T const& value);
+        node_ptr addNodeToLeftLeaf(node_ptr node, T const& value);
+        node_ptr addNodeToRightLeaf(node_ptr node, T const& value);
 
-        static comparator equal_to;
-        static comparator less;
+        comparator const& equal_to;
+        comparator const& less;
 
     };
 
+
     template <class T>
-    typename RBTree<T>::comparator RBTree<T>::AdditionMethodImplementation::equal_to = cust::equal_to<T>;
-    
-    template <class T>
-    typename RBTree<T>::comparator RBTree<T>::AdditionMethodImplementation::less = cust::less<T>;
+    class RBTree<T>::RemovalMethodImplementation {
+    protected:
+        RBTree* const tree;
+
+    public:
+        RemovalMethodImplementation(RBTree<T>* const tree)
+         : tree(tree), equal_to(tree->equal_to), less(tree->less) {}
+
+        void run(T const& value) {}
+
+    protected:
+
+        comparator const& equal_to;
+        comparator const& less;
+
+    };
 
     // RBTree class methods implementation
 
@@ -203,9 +214,10 @@ namespace cust {
     }
 
     template <class T>
-    void RBTree<T>::remove(T const& value) {
+    RBTree<T>::value_ptr RBTree<T>::remove(T const& value) {
         RemovalMethodImplementation impl(this);
         impl.run(value);
+        return impl.value_ptr;
     }
 
     template <class T>
@@ -468,7 +480,12 @@ namespace cust {
     typename RBTree<T>::node_ptr RBTree<T>::AdditionMethodImplementation::recolorParentAndUncleAndGrandfather(node_ptr node) {
         auto parent = node->parent.lock();
         auto grandfather = parent->parent.lock();
-        auto uncle = grandfather->left;
+        node_ptr uncle;
+        if (parent == grandfather->right) {
+            uncle = grandfather->left;
+        } else {
+            uncle = grandfather->right;
+        }
         parent->color = uncle->color = BLACK;
         grandfather->color = RED;
         return grandfather;

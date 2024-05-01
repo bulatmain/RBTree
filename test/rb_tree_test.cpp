@@ -6,6 +6,7 @@
 
 using namespace cust;
 
+// Auxiliary
 using tree = RBTree<double>;
 using node = RBTree<double>::Node;
 using color = RBTree<double>::Color;
@@ -14,14 +15,6 @@ enum ChildSide {
 	LEFT,
 	RIGHT
 };
-
-TEST(Comparator, CustEqualTo) {
-	ASSERT_TRUE(cust::equal_to<double>(1, 1.0));
-}
-
-TEST(Comparator, CustLess) {
-	ASSERT_TRUE(cust::less<double>(5, 15));
-}
 
 void set_link(tree::node_ptr new_parent, tree::node_ptr new_child, ChildSide s) {
 	if (s == ChildSide::LEFT) {
@@ -32,11 +25,35 @@ void set_link(tree::node_ptr new_parent, tree::node_ptr new_child, ChildSide s) 
 	new_child->parent = new_parent;
 }
 
+tree::node_ptr make_node(color c, double val) {
+	return std::make_shared<node>(c, val, cust::equal_to<double>, cust::less<double>);
+}
+
 tree::node_ptr add_child_to_node(tree::node_ptr n, color c, double val, ChildSide s) {
-	auto _n = std::make_shared<node>(c, val, cust::equal_to<double>, cust::less<double>);
+	auto _n = make_node(c, val);
 	set_link(n, _n, s);
 	return _n;
 }
+
+// Tree examples
+tree::node_ptr rb_tree_example_1() {
+	auto n4 = std::make_shared<node>(color::BLACK, 4, cust::equal_to<double>, cust::less<double>);
+	auto n2 = add_child_to_node(n4, color::RED, 2, ChildSide::LEFT);
+	auto n6 = add_child_to_node(n4, color::BLACK, 6, ChildSide::RIGHT);
+	auto n0 = add_child_to_node(n2, color::BLACK, 0, ChildSide::LEFT);
+	auto n3 = add_child_to_node(n2, color::BLACK, 3, ChildSide::RIGHT);
+	auto n5 = add_child_to_node(n6, color::BLACK, 5, ChildSide::LEFT);
+	auto n8 = add_child_to_node(n6, color::BLACK, 8, ChildSide::RIGHT);
+	auto n1 = add_child_to_node(n0, color::RED, 1, ChildSide::RIGHT);
+	auto n7 = add_child_to_node(n8, color::RED, 7, ChildSide::LEFT);
+	auto n9 = add_child_to_node(n8, color::RED, 9, ChildSide::RIGHT);
+
+	return n4;
+}
+
+// AddMethod tests
+#ifndef AddMethodTests
+#define AddMethodTests
 
 void assert_good_addition(tree& t, tree const& _t, double val) {
 	try {
@@ -177,12 +194,6 @@ TEST(AddMethod, Addition80CauseRecolorAndLRotationAndRecolor) {
 	assert_good_addition(t, _t, 80);
 }
 
-
-TEST(EmptyMethod, TreeEmptyAfterConstruction) {
-	RBTree<double> tree;
-	ASSERT_TRUE(tree.empty());
-}
-
 TEST(FindInSubtreeMethod, EmptyRBTreeBad) {
 	std::shared_ptr<node> root;
 	ASSERT_THROW(
@@ -191,21 +202,77 @@ TEST(FindInSubtreeMethod, EmptyRBTreeBad) {
 	);
 }
 
-	
-tree::node_ptr rb_tree_example_1() {
-	auto n4 = std::make_shared<node>(color::BLACK, 4, cust::equal_to<double>, cust::less<double>);
-	auto n2 = add_child_to_node(n4, color::RED, 2, ChildSide::LEFT);
-	auto n6 = add_child_to_node(n4, color::BLACK, 6, ChildSide::RIGHT);
-	auto n0 = add_child_to_node(n2, color::BLACK, 0, ChildSide::LEFT);
-	auto n3 = add_child_to_node(n2, color::BLACK, 3, ChildSide::RIGHT);
-	auto n5 = add_child_to_node(n6, color::BLACK, 5, ChildSide::LEFT);
-	auto n8 = add_child_to_node(n6, color::BLACK, 8, ChildSide::RIGHT);
-	auto n1 = add_child_to_node(n0, color::RED, 1, ChildSide::RIGHT);
-	auto n7 = add_child_to_node(n8, color::RED, 7, ChildSide::LEFT);
-	auto n9 = add_child_to_node(n8, color::RED, 9, ChildSide::RIGHT);
+void rb_tree_example_1_find_parent_element_good(double val, double prev) {
+	tree t; t.root = rb_tree_example_1();
+	tree::AdditionMethodImplementation impl(&t);
 
-	return n4;
+	std::shared_ptr<node> n;
+	try {
+		n = impl.findLeafParentInSubtree(t.root, val);
+	} catch(...) {
+		FAIL();
+	}
+	ASSERT_TRUE(*n->value == prev);
 }
+
+void rb_tree_example_1_find_parent_element_bad(double val) {
+	tree t; t.root = rb_tree_example_1();
+	tree::AdditionMethodImplementation impl(&t);
+	ASSERT_THROW(
+		{impl.findLeafParentInSubtree(t.root, val);},
+		NoLeafParentElementInTree
+	);
+}
+
+TEST(FindParentInSubtreeMethod, RBTreeExample1FindPrevOf8Is6) {
+	rb_tree_example_1_find_parent_element_good(10, 9);
+}
+
+TEST(FindParentInSubtreeMethod, RBTreeExample1FindPrevOf1Is0) {
+	rb_tree_example_1_find_parent_element_good(-1, 0);
+}
+
+TEST(FindParentInSubtreeMethod, RBTreeExample1FindPrevOf7_5Is7) {
+	rb_tree_example_1_find_parent_element_good(7.5, 7);
+}
+
+TEST(FindParentInSubtreeMethod, RBTreeExample1FindPrevOf4Bad) {
+	rb_tree_example_1_find_parent_element_bad(4);
+}
+
+TEST(AddToLeafOfSubtreeMethod, RBTreeExample1Add7_5ToLeaf) {
+	tree t; t.root = rb_tree_example_1();
+	tree::AdditionMethodImplementation impl(&t);
+	auto node = impl.addToLeafOfSubtree(t.root, 7.5);
+	auto parent = node->parent.lock();
+	ASSERT_TRUE(parent);
+	ASSERT_EQ(*(parent->value), 7.0);
+	ASSERT_EQ(parent->right, node);
+}
+
+TEST(AddToLeafOfSubtreeMethod, RBTreeExample1Addm1ToLeaf) {
+	tree t; t.root = rb_tree_example_1();
+	tree::AdditionMethodImplementation impl(&t);
+	auto node = impl.addToLeafOfSubtree(t.root, -1);
+	auto parent = node->parent.lock();
+	ASSERT_TRUE(parent);
+	ASSERT_EQ(*(parent->value), 0);
+	ASSERT_EQ(parent->left, node);
+}
+
+TEST(AddToLeafOfSubtreeMethod, RBTreeEmptyAdd0ToLeaf) {
+	tree t; t.root = nullptr;
+	tree::AdditionMethodImplementation impl(&t);
+	ASSERT_THROW(
+		{ auto node = impl.addToLeafOfSubtree(t.root, 0); },
+		TreeEmpty
+	);
+}
+#endif
+
+// FindMethod tests
+#ifndef FindMethodTests
+#define FindMethodTests
 
 void rb_tree_example_1_find_element_good(double val) {
 	auto root = rb_tree_example_1();
@@ -237,71 +304,185 @@ TEST(FindInSubtreeMethod, RBTreeExample1FindAllNodes) {
 TEST(FindInSubtreeMethod, RBTreeExample1Find10Bad) {
 	rb_tree_example_1_find_element_bad(10);
 }
+#endif
 
-
-void rb_tree_example_1_find_parent_element_good(double val, double prev) {
-	auto root = rb_tree_example_1();
-
-	std::shared_ptr<node> n;
-	try {
-		n = tree::AdditionMethodImplementation::findLeafParentInSubtree(root, val);
-	} catch(...) {
-		FAIL();
-	}
-	ASSERT_TRUE(*n->value == prev);
+// EmptyMethod tests
+#ifndef EmptyMethodTests
+#define EmptyMethodTests
+TEST(EmptyMethod, TreeEmptyAfterConstruction) {
+	RBTree<double> tree;
+	ASSERT_TRUE(tree.empty());
 }
+#endif
 
-void rb_tree_example_1_find_parent_element_bad(double val) {
-	auto root = rb_tree_example_1();
+// RemoveMethod tests
+// #define RemoveMethodTests
+
+#ifndef RemoveMethodTests
+#define RemoveMethodTests
+
+TEST(RemoveMethod, RemoveFromEmptyTreeBad) {
+	tree t;
 	ASSERT_THROW(
-		{tree::AdditionMethodImplementation::findLeafParentInSubtree(root, val);},
-		NoLeafParentElementInTree
-	);
-}
-
-
-TEST(FindParentInSubtreeMethod, RBTreeExample1FindPrevOf8Is6) {
-	rb_tree_example_1_find_parent_element_good(10, 9);
-}
-
-TEST(FindParentInSubtreeMethod, RBTreeExample1FindPrevOf1Is0) {
-	rb_tree_example_1_find_parent_element_good(-1, 0);
-}
-
-TEST(FindParentInSubtreeMethod, RBTreeExample1FindPrevOf7_5Is7) {
-	rb_tree_example_1_find_parent_element_good(7.5, 7);
-}
-
-TEST(FindParentInSubtreeMethod, RBTreeExample1FindPrevOf4Bad) {
-	rb_tree_example_1_find_parent_element_bad(4);
-}
-
-TEST(AddToLeafOfSubtreeMethod, RBTreeExample1Add7_5ToLeaf) {
-	auto root = rb_tree_example_1();
-	auto node = tree::AdditionMethodImplementation::addToLeafOfSubtree(root, 7.5);
-	auto parent = node->parent.lock();
-	ASSERT_TRUE(parent);
-	ASSERT_EQ(*(parent->value), 7.0);
-	ASSERT_EQ(parent->right, node);
-}
-
-TEST(AddToLeafOfSubtreeMethod, RBTreeExample1Addm1ToLeaf) {
-	auto root = rb_tree_example_1();
-	auto node = tree::AdditionMethodImplementation::addToLeafOfSubtree(root, -1.0);
-	auto parent = node->parent.lock();
-	ASSERT_TRUE(parent);
-	ASSERT_EQ(*(parent->value), 0);
-	ASSERT_EQ(parent->left, node);
-}
-
-TEST(AddToLeafOfSubtreeMethod, RBTreeEmptyAdd0ToLeaf) {
-	tree::node_ptr root = nullptr;
-	ASSERT_THROW(
-		{ auto node = tree::AdditionMethodImplementation::addToLeafOfSubtree(root, 0); },
+		{ t.remove(0); },
 		TreeEmpty
 	);
 }
 
+void assert_good_removal(tree& t, tree const& _t, double val) {
+	tree::value_ptr val_ptr;
+	try {
+		val_ptr = t.remove(val);
+	} catch (...) {
+		FAIL();
+	}
+	ASSERT_EQ(t, _t);
+	ASSERT_EQ(*val_ptr, val);
+}
+
+tree preTreeInTest__RemoveSoloRootGood__() {
+	tree t;
+	auto n8 = make_node(color::BLACK, 8);
+	t.root = n8;
+	return t;
+}
+
+tree wantedTreeInTest__RemoveSoloRootGood__() {
+	tree _t;
+	return _t;
+}
+
+TEST(RemoveMethod, RemoveSoloRoot8Good) {
+	tree t = preTreeInTest__RemoveSoloRootGood__();
+	tree _t = wantedTreeInTest__RemoveSoloRootGood__();
+	assert_good_removal(t, _t, 8);
+}
+
+tree preTreeInTest__RedNode18WithoutKids__() {
+	tree t;
+	auto n8 = make_node(color::BLACK, 8);
+	auto n18 = add_child_to_node(n8, color::RED, 18, RIGHT);
+	t.root = n8;
+	return t;
+} 
+
+tree wantedTreeInTest__RedNode18WithoutKids__() {
+	tree _t;
+	auto n8 = make_node(color::BLACK, 8);
+	_t.root = n8;
+	return _t;
+} 
+
+TEST(RemoveMethod, RedNode18WithoutKids) {
+	tree t = preTreeInTest__RedNode18WithoutKids__();
+	tree _t = wantedTreeInTest__RedNode18WithoutKids__();
+	assert_good_removal(t, _t, 18);
+}
+
+tree preTreeInTest__BlackNode18WithOneRedChild__() {
+	tree t;
+	auto n8 = make_node(color::BLACK, 8);
+	auto n18 = add_child_to_node(n8, color::RED, 18, RIGHT);
+	t.root = n8;
+	return t;
+}
+
+tree wantedTreeInTest__BlackNode18WithOneRedChild__() {
+	tree _t;
+	auto n8 = make_node(color::BLACK, 8);
+	_t.root = n8;
+	return _t;
+}
+
+TEST(RemoveMethod, BlackNode18WithOneRedChild) {
+	tree t = preTreeInTest__BlackNode18WithOneRedChild__();
+	tree _t = wantedTreeInTest__BlackNode18WithOneRedChild__();
+	assert_good_removal(t, _t, 18);
+}
+
+tree preTreeInTest__BlackNode5WithBlackBrotherWithLeftRedChild__() {
+	tree t;
+	auto n8 = make_node(color::BLACK, 8);
+	auto n5 = add_child_to_node(n8, color::BLACK, 5, LEFT);
+	auto n18 = add_child_to_node(n8, color::BLACK, 18, RIGHT);
+	auto n15 = add_child_to_node(n18, color::RED, 15, LEFT);
+	t.root = n8;
+	return t;
+}
+
+tree wantedTreeInTest__BlackNode5WithBlackBrotherWithLeftRedChild__() {
+	tree _t;
+	auto n15 = make_node(color::BLACK, 15);
+	auto n8 = add_child_to_node(n15, color::BLACK, 8, LEFT);
+	auto n18 = add_child_to_node(n15, color::BLACK, 18, RIGHT);
+	_t.root = n15;
+	return _t;
+}
+
+TEST(RemoveMethod, BlackNode5WithBlackBrotherWithLeftRedChild) {
+	tree t = preTreeInTest__BlackNode5WithBlackBrotherWithLeftRedChild__();
+	tree _t = wantedTreeInTest__BlackNode5WithBlackBrotherWithLeftRedChild__();
+	assert_good_removal(t, _t, 5);
+}
+
+tree preTreeInTest__BlackNode5WithBlackBrotherWithRightRedChild__() {
+	tree t;
+	auto n8 = make_node(color::BLACK, 8);
+	auto n5 = add_child_to_node(n8, color::BLACK, 5, LEFT);
+	auto n17 = add_child_to_node(n8, color::BLACK, 17, RIGHT);
+	auto n15 = add_child_to_node(n17, color::RED, 15, LEFT);
+	auto n18 = add_child_to_node(n17, color::RED, 18, RIGHT);
+	t.root = n8;
+	return t;
+}
+
+tree wantedTreeInTest__BlackNode5WithBlackBrotherWithRightRedChild__() {
+	tree _t;
+	auto n17 = make_node(color::BLACK, 17);
+	auto n8 = add_child_to_node(n17, color::BLACK, 8, LEFT);
+	auto n15 = add_child_to_node(n8, color::RED, 15, RIGHT);
+	auto n18 = add_child_to_node(n17, color::BLACK, 18, RIGHT);
+	_t.root = n17;
+	return _t;
+}
+
+TEST(RemoveMethod, BlackNode5WithBlackBrotherWithRightRedChild) {
+	tree t = preTreeInTest__BlackNode5WithBlackBrotherWithRightRedChild__();
+	tree _t = wantedTreeInTest__BlackNode5WithBlackBrotherWithRightRedChild__();
+	assert_good_removal(t, _t, 5);
+}
+
+tree preTreeInTest__BlackNode5WithRedBrother__() {
+	tree t;
+	auto n8 = make_node(color::BLACK, 8);
+	auto n5 = add_child_to_node(n8, color::BLACK, 5, LEFT);
+	auto n17 = add_child_to_node(n8, color::RED, 17, RIGHT);
+	auto n15 = add_child_to_node(n17, color::BLACK, 15, LEFT);
+	auto n18 = add_child_to_node(n17, color::BLACK, 18, RIGHT);
+	auto n26 = add_child_to_node(n18, color::RED, 25, RIGHT);
+	t.root = n8;
+	return t;
+}
+
+tree wantedTreeInTest__BlackNode5WithRedBrother__() {
+	tree _t;
+	auto n17 = make_node(color::BLACK, 17);
+	auto n8 = add_child_to_node(n17, color::BLACK, 8, LEFT);
+	auto n15 = add_child_to_node(n8, color::RED, 15, RIGHT);
+	auto n18 = add_child_to_node(n17, color::BLACK, 18, RIGHT);
+	auto n25 = add_child_to_node(n18, color::RED, 25, RIGHT);
+	_t.root = n17;
+	return _t;
+}
+
+TEST(RemoveMethod, BlackNode5WithRedBrother) {
+	tree t = preTreeInTest__BlackNode5WithRedBrother__();
+	tree _t = wantedTreeInTest__BlackNode5WithRedBrother__();
+	assert_good_removal(t, _t, 8);
+}
+
+
+#endif
 
 int main(int argc, char **argv)
 {
