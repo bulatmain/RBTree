@@ -378,7 +378,9 @@ TEST(RemoveMethod, RedNode18WithoutKids) {
 tree preTreeInTest__BlackNode18WithOneRedChild__() {
 	tree t;
 	auto n8 = make_node(color::BLACK, 8);
-	auto n18 = add_child_to_node(n8, color::RED, 18,  childSide::RIGHT);
+	auto n5 = add_child_to_node(n8, color::BLACK, 5, childSide::LEFT);
+	auto n18 = add_child_to_node(n8, color::BLACK, 18,  childSide::RIGHT);
+	auto n17 = add_child_to_node(n18, color::RED, 17, childSide::LEFT);
 	t.root = n8;
 	return t;
 }
@@ -386,6 +388,8 @@ tree preTreeInTest__BlackNode18WithOneRedChild__() {
 tree wantedTreeInTest__BlackNode18WithOneRedChild__() {
 	tree _t;
 	auto n8 = make_node(color::BLACK, 8);
+	auto n5 = add_child_to_node(n8, color::BLACK, 5, childSide::LEFT);
+	auto n17 = add_child_to_node(n8, color::BLACK, 17, childSide::RIGHT);
 	_t.root = n8;
 	return _t;
 }
@@ -448,7 +452,7 @@ TEST(RemoveMethod, BlackNode5WithBlackBrotherWithRightRedChild) {
 	assert_good_removal(t, _t, 5);
 }
 
-tree preTreeInTest__BlackNode5WithRedBrother__() {
+tree preTreeInTest__BlackNode5WithRightRedBrother__() {
 	tree t;
 	auto n8 = make_node(color::BLACK, 8);
 	auto n5 = add_child_to_node(n8, color::BLACK, 5,  childSide::LEFT);
@@ -460,7 +464,7 @@ tree preTreeInTest__BlackNode5WithRedBrother__() {
 	return t;
 }
 
-tree wantedTreeInTest__BlackNode5WithRedBrother__() {
+tree wantedTreeInTest__BlackNode5WithRightRedBrother__() {
 	tree _t;
 	auto n17 = make_node(color::BLACK, 17);
 	auto n8 = add_child_to_node(n17, color::BLACK, 8,  childSide::LEFT);
@@ -471,10 +475,40 @@ tree wantedTreeInTest__BlackNode5WithRedBrother__() {
 	return _t;
 }
 
-TEST(RemoveMethod, BlackNode5WithRedBrother) {
-	tree t = preTreeInTest__BlackNode5WithRedBrother__();
-	tree _t = wantedTreeInTest__BlackNode5WithRedBrother__();
-	assert_good_removal(t, _t, 8);
+TEST(RemoveMethod, BlackNode5WithRightRedBrother) {
+	tree t = preTreeInTest__BlackNode5WithRightRedBrother__();
+	tree _t = wantedTreeInTest__BlackNode5WithRightRedBrother__();
+	assert_good_removal(t, _t, 5);
+}
+
+
+tree preTreeInTest__BlackNode10WithLeftRedBrother__() {
+	tree t;
+	auto n8 = make_node(color::BLACK, 8);
+	auto n10 = add_child_to_node(n8, color::BLACK, 10,  childSide::RIGHT);
+	auto n5 = add_child_to_node(n8, color::RED, 5,  childSide::LEFT);
+	auto n7 = add_child_to_node(n5, color::BLACK, 7,  childSide::RIGHT);
+	auto n4 = add_child_to_node(n5, color::BLACK, 4,  childSide::LEFT);
+	auto n3 = add_child_to_node(n4, color::RED, 3,  childSide::LEFT);
+	t.root = n8;
+	return t;
+}
+
+tree wantedTreeInTest__BlackNode10WithLeftRedBrother__() {
+	tree _t;
+	auto n5 = make_node(color::BLACK, 5);
+	auto n8 = add_child_to_node(n5, color::BLACK, 8, childSide::RIGHT);
+	auto n7 = add_child_to_node(n8, color::RED, 7,  childSide::LEFT);
+	auto n4 = add_child_to_node(n5, color::BLACK, 4,  childSide::LEFT);
+	auto n3 = add_child_to_node(n4, color::RED, 3, childSide::LEFT);
+	_t.root = n5;
+	return _t;
+}
+
+TEST(RemoveMethod, BlackNode10WithLeftRedBrother) {
+	tree t = preTreeInTest__BlackNode10WithLeftRedBrother__();
+	tree _t = wantedTreeInTest__BlackNode10WithLeftRedBrother__();
+	assert_good_removal(t, _t, 10);
 }
 
 

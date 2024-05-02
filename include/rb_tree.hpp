@@ -169,7 +169,15 @@ namespace cust {
 
     protected:
         node_ptr removeNode(node_ptr node);
-        void balanceFrom(node_ptr node);
+        void fixBlackHeight(node_ptr parent, ChildSide problemSide);
+        void fixBlackHeightForLeft(node_ptr parent);
+        void fixBlackHeightForRight(node_ptr parent);
+
+        void runFixFromGrandFather(node_ptr node);
+
+        static bool blackChildrenCase(node_ptr node);
+        static bool redLeftChildCase(node_ptr node);
+        static bool redRightChildCase(node_ptr node);
 
         static bool childlessNodeCase(node_ptr);
         static bool nodeWithOneChildCase(node_ptr);
@@ -586,7 +594,13 @@ RBTree<T>::value_ptr RBTree<T>::RemovalMethodImplementation::run(T const& value)
         auto node = tree->findInSubtree(tree->root, value);
         auto value = node->value;
         node = removeNode(node);
-        balanceFrom(node);
+        auto parent = node->parent.lock();
+        if (!parent) {
+            node->color = BLACK;
+        } else if (node->color == BLACK) {
+            auto side = (tree->less(*node->value, *parent->value) ? LEFT : RIGHT);
+            fixBlackHeight(parent, side);
+        }
         return value;
     } catch(NoSuchElementInSubtree const& e) {
         throw e;
@@ -605,7 +619,6 @@ typename RBTree<T>::node_ptr RBTree<T>::RemovalMethodImplementation::removeNode(
     return node;
 }
 
-
 template <class T>
 bool RBTree<T>::RemovalMethodImplementation::childlessNodeCase(node_ptr node) {
     return !(node->left || node->right);
@@ -614,7 +627,6 @@ template <class T>
 bool RBTree<T>::RemovalMethodImplementation::nodeWithOneChildCase(node_ptr node) {
     return (node->left && !node->right) || (!node->left && node->right);
 }
-
 
 template <class T>
 typename RBTree<T>::node_ptr  RBTree<T>::RemovalMethodImplementation::removeChildlessNode(node_ptr node) {
@@ -632,34 +644,16 @@ typename RBTree<T>::node_ptr  RBTree<T>::RemovalMethodImplementation::removeChil
 template <class T>
 typename RBTree<T>::node_ptr  RBTree<T>::RemovalMethodImplementation::removeNodeWithOneChild(node_ptr node) {
     auto parent = node->parent.lock();
+    auto child = (node->left ? node->left : node->right);
     if (!parent) {
-        if (node->left) {
-            tree->root = node->left;
-            node->left->parent = wnode_ptr();
-        } else {
-            tree->root = node->right;
-            node->right->parent = wnode_ptr();
-        }
+        tree->root = child;
+        child->parent = wnode_ptr();
     } else if (node == parent->left) {
-        if (node->left) {
-            parent->left = node->left;
-            node->left->parent = parent;
-            node->left = nullptr;
-        } else {
-            parent->left = node->right;
-            node->right->parent = parent;
-            node->right = nullptr;
-        }
+        parent->left = child;
+        child->parent = parent;
     } else {
-        if (node->left) {
-            parent->right = node->left;
-            node->left->parent = parent;
-            node->left = nullptr;
-        } else {
-            parent->right = node->right;
-            node->right->parent = parent;
-            node->right = nullptr;
-        }
+        parent->right = child;
+        child->parent = parent;
     }
     return node;
 }
@@ -680,14 +674,104 @@ typename RBTree<T>::node_ptr RBTree<T>::RemovalMethodImplementation::findLeastLa
     return next;
 }
 
-template <class T>
-void RBTree<T>::RemovalMethodImplementation::balanceFrom(node_ptr node) {
-    if (redBrotherCase(node)) {
-        
-    } else if (blackBrotherCase(node)) {
 
+template <class T>
+void RBTree<T>::RemovalMethodImplementation::fixBlackHeight(node_ptr parent, ChildSide problemSide) {
+    auto grandparent = parent->parent.lock();
+    auto child = (problemSide == LEFT ? parent->left : parent->right);
+    if (child && child->color == RED) {
+        child->color = BLACK;
+        return;
+    } else if (problemSide == LEFT) {
+        fixBlackHeightForLeft(parent);
+    } else {
+        fixBlackHeightForRight(parent);
     }
 }
+
+
+template <class T>
+void RBTree<T>::RemovalMethodImplementation::fixBlackHeightForLeft(node_ptr parent) {
+    auto brother = parent->right;
+    if (brother->color == RED) {
+        tree->leftRotate(parent);
+        auto grandparent =  parent->parent.lock();
+        parent->color = RED;
+        grandparent->color = BLACK;
+        fixBlackHeightForLeft(parent);
+    } else {
+        if (blackChildrenCase(brother)) {
+            brother->color = RED;
+            runFixFromGrandFather(parent);
+        } else if (redRightChildCase(brother)) {
+            tree->leftRotate(parent);
+            brother->color = parent->color;
+            parent->color = brother->right->color = BLACK;
+        } else {
+            tree->rightRotate(brother);
+            brother->color = RED;
+            brother->parent.lock()->color = BLACK;
+            fixBlackHeightForLeft(parent);
+        }
+    }
+}
+
+
+template <class T>
+void RBTree<T>::RemovalMethodImplementation::fixBlackHeightForRight(node_ptr parent) {
+    auto brother = parent->left;
+    if (brother->color == RED) {
+        tree->rightRotate(parent);
+        auto grandparent =  parent->parent.lock();
+        parent->color = RED;
+        grandparent->color = BLACK;
+        fixBlackHeightForRight(parent);
+    } else {
+        if (blackChildrenCase(brother)) {
+            brother->color = RED;
+            runFixFromGrandFather(parent);
+        } else if (redLeftChildCase(brother)) {
+            tree->rightRotate(parent);
+            brother->color = parent->color;
+            parent->color = brother->left->color = BLACK;
+        } else {
+            tree->leftRotate(brother);
+            brother->color = RED;
+            brother->parent.lock()->color = BLACK;
+            fixBlackHeightForRight(parent);
+        }
+    }
+}
+
+template <class T>
+void RBTree<T>::RemovalMethodImplementation::runFixFromGrandFather(node_ptr parent) {
+    auto grandfather = parent->parent.lock();
+    if (!grandfather) {
+        return;
+    } else if (parent == grandfather->left) {
+        fixBlackHeight(grandfather, LEFT);
+    } else {
+        fixBlackHeight(grandfather, RIGHT);
+    }
+}
+
+
+template <class T>
+bool RBTree<T>::RemovalMethodImplementation::blackChildrenCase(node_ptr node) {
+    return (!node->left || node->left->color == BLACK) && 
+           (!node->right || node->right->color == BLACK);
+}
+
+template <class T>
+bool RBTree<T>::RemovalMethodImplementation::redRightChildCase(node_ptr node) {
+    return (node->right && node->right->color == RED);
+}
+
+template <class T>
+bool RBTree<T>::RemovalMethodImplementation::redLeftChildCase(node_ptr node) {
+    return (node->left && node->left->color == RED);
+}
+
 
 #endif
 
