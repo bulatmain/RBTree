@@ -22,7 +22,8 @@ void set_link(tree::node_ptr new_parent, tree::node_ptr new_child, childSide s) 
 }
 
 tree::node_ptr make_node(color c, double val) {
-	return std::make_shared<node>(c, val, cust::equal_to<double>, cust::less<double>);
+	auto val_ptr = std::make_shared<double>(val);
+	return std::make_shared<node>(c, val_ptr, cust::equal_to<double>, cust::less<double>);
 }
 
 tree::node_ptr add_child_to_node(tree::node_ptr n, color c, double val, childSide s) {
@@ -33,7 +34,7 @@ tree::node_ptr add_child_to_node(tree::node_ptr n, color c, double val, childSid
 
 // Tree examples
 tree::node_ptr rb_tree_example_1() {
-	auto n4 = std::make_shared<node>(color::BLACK, 4, cust::equal_to<double>, cust::less<double>);
+	auto n4 = make_node(color::BLACK, 4);
 	auto n2 = add_child_to_node(n4, color::RED, 2, childSide::LEFT);
 	auto n6 = add_child_to_node(n4, color::BLACK, 6, childSide::RIGHT);
 	auto n0 = add_child_to_node(n2, color::BLACK, 0, childSide::LEFT);
@@ -68,7 +69,7 @@ tree preTreeInTest__AddNode8ToEmptyTree__() {
 
 tree wantedTreeInTest__AddNode8ToEmptyTree__() {
 	tree t = preTreeInTest__AddNode8ToEmptyTree__();
-	tree::node_ptr root = std::make_shared<node>(tree::Color::BLACK, 8, cust::equal_to<double>, cust::less<double>);
+	tree::node_ptr root = make_node(tree::Color::BLACK, 8);
 	t.root = root;
 	return t;
 }
@@ -172,7 +173,7 @@ tree preTreeInTest__Addition80CauseRecolorAndLRotationAndRecolor__() {
 
 tree wantedTreeInTest__Addition80CauseRecolorAndLRotationAndRecolor__() {
 	tree t;
-	auto n17 = std::make_shared<node>(color::BLACK, 17, cust::equal_to<double>, cust::less<double>);
+	auto n17 = make_node(color::BLACK, 17);
 	auto n8  = add_child_to_node(n17, color::RED,    8, childSide::LEFT);
 	auto n25 = add_child_to_node(n17, color::RED,   25, childSide::RIGHT);
 	auto n5  = add_child_to_node(n8,  color::BLACK,  5, childSide::LEFT);

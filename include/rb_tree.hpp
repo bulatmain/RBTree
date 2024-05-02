@@ -43,18 +43,30 @@ namespace cust {
         RBTree(comparator const& equal_to = cust::equal_to<T>, 
                comparator const& less = cust::less<T>) : equal_to(equal_to), less(less) {}
         RBTree(RBTree<T>&& other);
+
         value_ptr find(T const& value) const;
         void add(T const& value);
         value_ptr remove(T const& value);
         bool empty() const;
         uint64_t size() const;
 
+        void setEqComparator(comparator const& equal_to);
+
         bool operator==(RBTree<T> const& other) const;
 
-        static void printTree(node_ptr root, int ident = 0);
-        void printTree() const {
-            RBTree<T>::printTree(root);
-        }
+        static void saveInStream(std::ostream& os, node_ptr root);
+        void saveInStream(std::ostream& os) const;
+
+        static RBTree<T> readFromStream(std::istream& is,
+                comparator const& equal_to = cust::equal_to<T>, 
+                comparator const& less = cust::less<T>);
+
+        static node_ptr readSubtreeFromStream(std::istream& is,
+                comparator const& equal_to, 
+                comparator const& less);
+
+        static void printTree(std::ostream& os, node_ptr root, int ident = 0);
+        void printTree(std::ostream& os) const;
 
     protected:
         class AdditionMethodImplementation;
@@ -82,9 +94,9 @@ namespace cust {
         static size_t count;
         size_t const id;
 
-        Node(Color color, T const& value,
+        Node(Color color, value_ptr value,
              comparator const& equal_to, 
-             comparator const& less) : color(color), value(std::make_shared<T>(value)), id(++count),
+             comparator const& less) : color(color), value(value), id(++count),
              equal_to(equal_to), less(less) {}
 
         bool operator==(Node const& other) const;
@@ -92,6 +104,7 @@ namespace cust {
         bool hasNoKids() const;
 
         std::ostream& print(std::ostream& os) const;
+        std::istream& read(std::istream& is);
 
     public:
         static bool leftIsTheOne(node_ptr node, T const& value);
@@ -199,21 +212,16 @@ namespace cust {
 #define RB_TREE_HPP
 
     template <class T>
-    void RBTree<T>::printTree(node_ptr root, int indent) {
-        if(root != NULL) {
-            if(root->right) {
-                printTree(root->right, indent+4);
-            }
-            if (indent) {
-                std::cout << std::setw(indent) << ' ';
-            }
-            if (root->right) std::cout <<" /\n" << std::setw(indent) << ' ';
-    		root->print(std::cout) << "\n ";
-            if(root->left) {
-                std::cout << std::setw(indent) << ' ' <<" \\\n";
-                printTree(root->left, indent+4);
-            }
-        }
+    RBTree<T>::RBTree(RBTree<T>&& other) {
+        root = other.root;
+        _size = other._size;
+        equal_to = other.equal_to;
+        less = other.less;
+
+        other.root = nullptr;
+        other._size = 0;
+        other.equal_to = cust::equal_to<T>;
+        other.less = cust::less<T>;
     }
 
     template <class T>
@@ -249,8 +257,84 @@ namespace cust {
     }
 
     template <class T>
+    void RBTree<T>::setEqComparator(comparator const& equal_to) {
+        this->equal_to = equal_to;
+    }
+
+    template <class T>
     bool RBTree<T>::operator==(RBTree<T> const& other) const {
         return subtreesEqual(root, other.root);
+    }
+
+
+    template <class T>
+    void RBTree<T>::saveInStream(std::ostream& os, node_ptr root) {
+        if (root) {
+            root->print(os);
+            saveInStream(os, root->left);
+            saveInStream(os, root->right);
+        } else {
+            os << "N";
+        }
+    }
+
+    template <class T>
+    void RBTree<T>::saveInStream(std::ostream& os) const {
+        RBTree<T>::saveInStream(os, root);
+    }
+    
+    template <class T>
+    RBTree<T> RBTree<T>::readFromStream(std::istream& is,
+            comparator const& equal_to, 
+            comparator const& less) {
+        RBTree<T> tree;
+        auto root = readSubtreeFromStream(is, equal_to, less);
+        tree.root = root;
+        return tree;
+    }
+
+    template <class T>
+    typename RBTree<T>::node_ptr RBTree<T>::readSubtreeFromStream(std::istream& is,
+            comparator const& equal_to, 
+            comparator const& less) {
+        auto root = std::make_shared<RBTree<T>::Node>(Color::BLACK, nullptr, equal_to, less);
+        try {
+            root->read(is);
+        } catch (...) {
+            return nullptr;
+        }
+        root->left = readSubtreeFromStream(is, equal_to, less);
+        if (root->left) {
+            root->left->parent = root;
+        }
+        root->right = readSubtreeFromStream(is, equal_to, less);
+        if (root->right) {
+            root->right->parent = root;
+        }
+        return root;
+    }
+
+    template <class T>
+    void RBTree<T>::printTree(std::ostream& os, node_ptr root, int indent) {
+        if(root != NULL) {
+            if(root->right) {
+                printTree(os, root->right, indent + 4);
+            } if (indent) {
+                os << std::setw(indent) << ' ';
+            } if (root->right) {
+                os <<" /\n" << std::setw(indent) << ' ';
+            }
+    		root->print(os) << "\n ";
+            if (root->left) {
+                os << std::setw(indent) << ' ' <<" \\\n";
+                printTree(os, root->left, indent + 4);
+            }
+        }
+    }
+
+    template <class T>
+    void RBTree<T>::printTree(std::ostream& os) const {
+        RBTree<T>::printTree(os, root);
     }
 
     template <class T>
@@ -375,6 +459,23 @@ namespace cust {
     template <class T>
     std::ostream& RBTree<T>::Node::print(std::ostream& os) const {
         return os << "(" << *value << ", " << color << ")";
+    }
+
+    template <class T>
+    std::istream& RBTree<T>::Node::read(std::istream& is) {
+        char _format_char;
+        is >> _format_char;
+        if (_format_char == 'N') {
+            throw std::runtime_error("Error: bad reading RBTree node!");
+        }
+        value = std::make_shared<T>();
+        is >> *value;
+        is >> _format_char;
+        char coloc_ch;
+        is >> coloc_ch;
+        color = (coloc_ch == '0' ? BLACK : RED);
+        is >> _format_char;
+        return is;
     }
 
 #endif
@@ -577,7 +678,8 @@ namespace cust {
 
     template <class T>
     typename RBTree<T>::node_ptr RBTree<T>::AdditionMethodImplementation::makeNode(Color color, T const& value) {
-        return std::make_shared<Node>(color, value, equal_to, less);
+        auto v_ptr = std::make_shared<T>(value);
+        return std::make_shared<Node>(color, v_ptr, equal_to, less);
     }
 
 #endif
@@ -601,6 +703,7 @@ RBTree<T>::value_ptr RBTree<T>::RemovalMethodImplementation::run(T const& value)
             auto side = (tree->less(*node->value, *parent->value) ? LEFT : RIGHT);
             fixBlackHeight(parent, side);
         }
+        --tree->_size;
         return value;
     } catch(NoSuchElementInSubtree const& e) {
         throw e;
