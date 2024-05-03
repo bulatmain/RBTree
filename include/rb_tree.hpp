@@ -44,6 +44,8 @@ namespace cust {
                comparator const& less = cust::less<T>) : equal_to(equal_to), less(less) {}
         RBTree(RBTree<T>&& other);
 
+        RBTree& operator=(RBTree<T>&& other);
+
         value_ptr find(T const& value) const;
         void add(T const& value);
         value_ptr remove(T const& value);
@@ -61,10 +63,6 @@ namespace cust {
                 comparator const& equal_to = cust::equal_to<T>, 
                 comparator const& less = cust::less<T>);
 
-        static node_ptr readSubtreeFromStream(std::istream& is,
-                comparator const& equal_to, 
-                comparator const& less);
-
         static void printTree(std::ostream& os, node_ptr root, int ident = 0);
         void printTree(std::ostream& os) const;
 
@@ -78,6 +76,11 @@ namespace cust {
         node_ptr rightRotate(node_ptr node);
         node_ptr leftRotate(node_ptr node);
 
+        void move(RBTree<T>&& other);
+
+        static node_ptr readSubtreeFromStream(std::istream& is,
+                comparator const& equal_to, 
+                comparator const& less);
 
     protected:
         node_ptr root;
@@ -213,6 +216,17 @@ namespace cust {
 
     template <class T>
     RBTree<T>::RBTree(RBTree<T>&& other) {
+        move(std::move(other));
+    }
+
+    template <class T>
+    RBTree<T>& RBTree<T>::operator=(RBTree<T>&& other) {
+        move(std::move(other));
+        return *this;
+    }
+
+    template <class T>
+    void RBTree<T>::move(RBTree<T>&& other) {
         root = other.root;
         _size = other._size;
         equal_to = other.equal_to;
@@ -241,7 +255,7 @@ namespace cust {
     }
 
     template <class T>
-    RBTree<T>::value_ptr RBTree<T>::remove(T const& value) {
+    typename RBTree<T>::value_ptr RBTree<T>::remove(T const& value) {
         RemovalMethodImplementation impl(this);
         return impl.run(value);
     }
@@ -689,7 +703,7 @@ namespace cust {
 #define RB_TREE_HPP
 
 template <class T>
-RBTree<T>::value_ptr RBTree<T>::RemovalMethodImplementation::run(T const& value) {
+typename RBTree<T>::value_ptr RBTree<T>::RemovalMethodImplementation::run(T const& value) {
     if (tree->empty()) {
         throw TreeEmpty("Error: can not remove node from empty RBTree!");
     } try {
@@ -706,7 +720,7 @@ RBTree<T>::value_ptr RBTree<T>::RemovalMethodImplementation::run(T const& value)
         --tree->_size;
         return value;
     } catch(NoSuchElementInSubtree const& e) {
-        throw e;
+        throw NoSuchElement(e.what());
     }
 }
 
@@ -765,7 +779,7 @@ template <class T>
 typename RBTree<T>::node_ptr  RBTree<T>::RemovalMethodImplementation::removeNodeWithTwoChildren(node_ptr node) {
     auto next = findLeastLargestNodeFromNodeWithTwoChildren(node);
     node->value = next->value;
-    return removeNodeWithOneChild(next);
+    return removeChildlessNode(next);
 }
 
 template <class T>
