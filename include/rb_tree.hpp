@@ -716,6 +716,7 @@ typename RBTree<T>::value_ptr RBTree<T>::RemovalMethodImplementation::run(T cons
         } else if (node->color == BLACK) {
             auto side = (tree->less(*node->value, *parent->value) ? LEFT : RIGHT);
             fixBlackHeight(parent, side);
+            tree->root->color = BLACK;
         }
         --tree->_size;
         return value;
@@ -765,6 +766,7 @@ typename RBTree<T>::node_ptr  RBTree<T>::RemovalMethodImplementation::removeNode
     if (!parent) {
         tree->root = child;
         child->parent = wnode_ptr();
+        tree->root->color = BLACK;
     } else if (node == parent->left) {
         parent->left = child;
         child->parent = parent;
@@ -779,7 +781,11 @@ template <class T>
 typename RBTree<T>::node_ptr  RBTree<T>::RemovalMethodImplementation::removeNodeWithTwoChildren(node_ptr node) {
     auto next = findLeastLargestNodeFromNodeWithTwoChildren(node);
     node->value = next->value;
-    return removeChildlessNode(next);
+    if (next->right) {
+        return removeNodeWithOneChild(next);
+    } else {
+        return removeChildlessNode(next);
+    }
 }
 
 template <class T>
