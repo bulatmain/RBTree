@@ -512,6 +512,56 @@ TEST(RemoveMethod, BlackNode10WithLeftRedBrother) {
 	assert_good_removal(t, _t, 10);
 }
 
+tree preTreeInTest__RemoveRoot2OfTree__() {
+	tree t;
+	auto n2 = make_node(color::BLACK, 2);
+	auto n1 = add_child_to_node(n2, color::BLACK, 1, childSide::LEFT);
+	auto n3 = add_child_to_node(n2, color::BLACK, 3, childSide::RIGHT);
+	auto n4 = add_child_to_node(n3, color::RED, 4, childSide::RIGHT);
+	t.root = n2;
+	return t;
+}
+
+tree wantedTreeInTest__RemoveRoot2OfTree__() {
+	tree t;
+	auto n3 = make_node(color::BLACK, 3);
+	auto n1 = add_child_to_node(n3, color::BLACK, 1, childSide::LEFT);
+	auto n4 = add_child_to_node(n3, color::BLACK, 4, childSide::RIGHT);
+	t.root = n3;
+	return t;
+}
+
+TEST(RemoveMethod, RemoveRoot2OfTree) {
+	tree t = preTreeInTest__RemoveRoot2OfTree__();
+	tree _t = wantedTreeInTest__RemoveRoot2OfTree__();
+	assert_good_removal(t, _t, 2);
+}
+
+// tree preTreeInTest__RecolorRootAfterRemoving__() {
+// 	tree t;
+// 	auto n2 = make_node(color::BLACK, 2);
+// 	auto n1 = add_child_to_node(n2, color::BLACK, 1, childSide::LEFT);
+// 	auto n3 = add_child_to_node(n2, color::BLACK, 3, childSide::RIGHT);
+// 	auto n4 = add_child_to_node(n3, color::RED, 4, childSide::RIGHT);
+// 	t.root = n2;
+// 	return t;
+// }
+
+// tree wantedTreeInTest__RecolorRootAfterRemoving__() {
+// 	tree t;
+// 	auto n3 = make_node(color::BLACK, 3);
+// 	auto n1 = add_child_to_node(n3, color::BLACK, 1, childSide::LEFT);
+// 	auto n4 = add_child_to_node(n3, color::BLACK, 4, childSide::RIGHT);
+// 	t.root = n3;
+// 	return t;
+// }
+
+// TEST(RemoveMethod, RecolorRootAfterRemoving) {
+// 	tree t = preTreeInTest__RemoveRoot2OfTree__();
+// 	tree _t = wantedTreeInTest__RemoveRoot2OfTree__();
+// 	assert_good_removal(t, _t, 2);
+// }
+
 
 #endif
 
