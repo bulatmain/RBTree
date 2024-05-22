@@ -3,10 +3,10 @@ cmake_minimum_required(VERSION 3.14)
 project(rbtree LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -g")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-option(RBTREE_TESTING "Включить модульное тестирование" OFF)
+option(RBTREE_TESTING "Включить модульное тестирование" ON)
 
 if((CMAKE_CXX_COMPILER_ID MATCHES "GNU") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
     add_compile_options(
