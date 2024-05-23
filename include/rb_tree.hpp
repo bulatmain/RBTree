@@ -94,8 +94,6 @@ namespace cust {
     template <class T>
     class RBTree<T>::Node {
     public:
-        static size_t count;
-        size_t const id;
 
         Node(Color color, value_ptr value,
              comparator const& equal_to, 
@@ -119,6 +117,9 @@ namespace cust {
         wnode_ptr parent;
         Color color;
         value_ptr value;
+        
+        static size_t count;
+        size_t const id;
 
         comparator const& equal_to;
         comparator const& less;    
@@ -472,7 +473,7 @@ namespace cust {
 
     template <class T>
     std::ostream& RBTree<T>::Node::print(std::ostream& os) const {
-        return os << "(" << *value << ", " << color << ")";
+        return os << "(" << *value << ", " << static_cast<int>(color) << ")";
     }
 
     template <class T>
