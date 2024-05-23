@@ -6,11 +6,24 @@
 
 using namespace cust;
 
+struct eq {
+	static double constexpr eps = 10e-9;
+	static bool cmp(const double& a, const double b) {
+		return std::abs(a - b) < eps;
+	}
+};
+
+struct le {
+	static bool cmp(const double& a, const double b) {
+		return a < b;
+	}
+};
+
 // Auxiliary
-using tree = RBTree<double>;
-using node = RBTree<double>::Node;
-using color = RBTree<double>::Color;
-using childSide = RBTree<double>::ChildSide;
+using tree = RBTree<double, eq, le>;
+using node = tree::Node;
+using color = tree::Color;
+using childSide = tree::ChildSide;
 
 void set_link(tree::node_ptr new_parent, tree::node_ptr new_child, childSide s) {
 	if (s == childSide::LEFT) {
@@ -23,7 +36,7 @@ void set_link(tree::node_ptr new_parent, tree::node_ptr new_child, childSide s) 
 
 tree::node_ptr make_node(color c, double val) {
 	auto val_ptr = std::make_shared<double>(val);
-	return std::make_shared<node>(c, val_ptr, cust::equal_to<double>, cust::less<double>);
+	return std::make_shared<node>(c, val_ptr);
 }
 
 tree::node_ptr add_child_to_node(tree::node_ptr n, color c, double val, childSide s) {
@@ -209,7 +222,7 @@ void rb_tree_example_1_find_parent_element_good(double val, double prev) {
 	} catch(...) {
 		FAIL();
 	}
-	ASSERT_TRUE(*n->value == prev);
+	ASSERT_TRUE(eq::cmp(*n->value, prev));
 }
 
 void rb_tree_example_1_find_parent_element_bad(double val) {
@@ -280,7 +293,7 @@ void rb_tree_example_1_find_element_good(double val) {
 	} catch(...) {
 		FAIL();
 	}
-	ASSERT_TRUE(*n->value == val);
+	ASSERT_TRUE(eq::cmp(*n->value, val));
 }
 
 void rb_tree_example_1_find_element_bad(double val) {
